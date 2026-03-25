@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailScan AI — Railway Crack Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --border: #1e1e2e;
+            --accent: #e8ff47;
+            --accent2: #ff4747;
+            --accent3: #47b8ff;
+            --text: #f0f0f0;
+            --muted: #666680;
+            --safe: #47ff8a;
+            --warning: #ffb347;
+            --danger: #ff4747;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            padding: 32px 0 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span { color: var(--accent); }
+
+        .badge {
+            background: rgba(232,255,71,0.1);
+            border: 1px solid rgba(232,255,71,0.3);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 60px 0 48px;
+            text-align: center;
+        }
+
+        .hero-tag {
+            display: inline-block;
+            background: rgba(71,184,255,0.1);
+            border: 1px solid rgba(71,184,255,0.3);
+            color: var(--accent3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+        }
+
+        h1 .highlight {
+            color: var(--accent);
+            position: relative;
+        }
+
+        .hero-sub {
+            font-size: 14px;
+            color: var(--muted);
+            max-width: 480px;
+            margin: 0 auto 16px;
+            line-height: 1.8;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 32px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(232,255,71,0.03);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .drop-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .drop-sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        /* Scan Button */
+        .scan-btn {
+            width: 100%;
+            margin-top: 24px;
+            padding: 18px;
+            background: var(--accent);
+            color: #0a0a0f;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scan-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(232,255,71,0.3);
+        }
+
+        .scan-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Results */
+        .results {
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .severity-badge {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        .severity-safe { background: rgba(71,255,138,0.15); color: var(--safe); border: 1px solid rgba(71,255,138,0.3); }
+        .severity-minor { background: rgba(255,179,71,0.15); color: var(--warning); border: 1px solid rgba(255,179,71,0.3); }
+        .severity-moderate { background: rgba(255,100,47,0.15); color: #ff6447; border: 1px solid rgba(255,100,47,0.3); }
+        .severity-severe { background: rgba(255,71,71,0.15); color: var(--danger); border: 1px solid rgba(255,71,71,0.3); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-card-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .img-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .img-card-label {
+            padding: 12px 16px;
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .img-card img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Recommendation */
+        .recommendation {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .rec-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .rec-text {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        .scan-again-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .scan-again-btn:hover {
+            background: rgba(232,255,71,0.1);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 24px 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 60px;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .images-grid { grid-template-columns: 1fr; }
+            .upload-section { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-inner">
+                <div class="logo">
+                    <div class="logo-icon">🛤️</div>
+                    <div class="logo-text">Rail<span>Scan</span> AI</div>
+                </div>
+                <div class="badge">Hack India 2025</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <div class="hero-tag">AI-Powered Infrastructure Safety</div>
+            <h1>Railway Track<br><span class="highlight">Crack Detection</span></h1>
+            <p class="hero-sub">Upload a railway track image. Our AI instantly detects cracks, assesses severity, and recommends action — saving lives at scale.</p>
+
+            <div class="stat-row">
+                <div class="stat">
+                    <div class="stat-num">67,000</div>
+                    <div class="stat-label">km of Indian Railways</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">&lt;2s</div>
+                    <div class="stat-label">Detection Time</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">4</div>
+                    <div class="stat-label">Severity Levels</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload Form -->
+        <div id="uploadSection">
+            <div class="upload-section">
+                <div class="section-label">// Scan Parameters</div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Track Location / Station</label>
+                        <input type="text" id="location" placeholder="e.g. Mumbai-Pune Section, km 42">
+                    </div>
+                    <div class="form-group">
+                        <label>Track ID / Zone</label>
+                        <input type="text" id="trackId" placeholder="e.g. CR-WR-0042">
+                    </div>
+                </div>
+
+                <div class="section-label">// Upload Track Image</div>
+
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png">
+                    <div class="drop-icon">📷</div>
+                    <div class="drop-title">Drop image here or click to browse</div>
+                    <div class="drop-sub">Supports JPG, PNG — Max 16MB</div>
+                    <img class="preview-img" id="previewImg" alt="Preview">
+                </div>
+
+                <button class="scan-btn" id="scanBtn" onclick="scanImage()">
+                    🔍 Run Crack Detection
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Analyzing track image with computer vision...</div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <div class="result-header">
+                <div>
+                    <div class="section-label">// Scan Complete</div>
+                    <div style="font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;" id="resultLocation">—</div>
+                </div>
+                <div class="severity-badge" id="severityBadge">—</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-num" id="crackPct">—</div>
+                    <div class="stat-card-label">Crack Area %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-num" id="crackCount">—</div>
+                    <div class="stat-card-label">Crack Regions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-num" id="statusIcon">—</div>
+                    <div class="stat-card-label">Status</div>
+                </div>
+            </div>
+
+            <div class="images-grid">
+                <div class="img-card">
+                    <div class="img-card-label">// Annotated Result</div>
+                    <img id="resultImg" src="" alt="Result">
+                </div>
+                <div class="img-card">
+                    <div class="img-card-label">// Edge Detection Map</div>
+                    <img id="edgeImg" src="" alt="Edge Map">
+                </div>
+            </div>
+
+            <div class="recommendation">
+                <div class="rec-title">⚡ Recommended Action</div>
+                <div class="rec-text" id="recommendation">—</div>
+            </div>
+
+            <button class="scan-again-btn" onclick="scanAgain()">↩ Scan Another Track</button>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            RailScan AI — Built for Hack India 2025 · Protecting 1.4B lives on 67,000 km of track
+        </div>
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const previewImg = document.getElementById('previewImg');
+        const dropZone = document.getElementById('dropZone');
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    dropZone.querySelector('.drop-icon').style.display = 'none';
+                    dropZone.querySelector('.drop-title').textContent = file.name;
+                    dropZone.querySelector('.drop-sub').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
+
+        async function scanImage() {
+            const file = fileInput.files[0];
+            if (!file) { alert('Please upload a track image first!'); return; }
+
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('location', document.getElementById('location').value || 'Unknown Location');
+            formData.append('track_id', document.getElementById('trackId').value || 'N/A');
+
+            try {
+                const res = await fetch('/detect', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.error) { alert('Error: ' + data.error); scanAgain(); return; }
+
+                document.getElementById('loading').style.display = 'none';
+                showResults(data);
+            } catch (err) {
+                alert('Connection error. Make sure Flask server is running.');
+                scanAgain();
+            }
+        }
+
+        function showResults(data) {
+            document.getElementById('resultLocation').textContent =
+                (data.location || 'Unknown') + ' · Track ' + (data.track_id || 'N/A');
+            document.getElementById('crackPct').textContent = data.crack_percentage + '%';
+            document.getElementById('crackCount').textContent = data.crack_count;
+            document.getElementById('resultImg').src = 'data:image/jpeg;base64,' + data.result_image;
+            document.getElementById('edgeImg').src = 'data:image/jpeg;base64,' + data.edge_image;
+
+            const badge = document.getElementById('severityBadge');
+            badge.textContent = data.severity;
+
+            if (data.severity.includes('No Crack')) {
+                badge.className = 'severity-badge severity-safe';
+                document.getElementById('statusIcon').textContent = '✅';
+                document.getElementById('recommendation').textContent =
+                    'Track is in good condition. Continue regular scheduled inspections. No immediate action required. Log this scan for maintenance records.';
+            } else if (data.severity.includes('Minor')) {
+                badge.className = 'severity-badge severity-minor';
+                document.getElementById('statusIcon').textContent = '⚠️';
+                document.getElementById('recommendation').textContent =
+                    'Minor surface irregularities detected. Schedule a detailed manual inspection within 7 days. Reduce train speed to 60 km/h on this section as a precaution. Mark location for priority review.';
+            } else if (data.severity.includes('Moderate')) {
+                badge.className = 'severity-badge severity-moderate';
+                document.getElementById('statusIcon').textContent = '🔶';
+                document.getElementById('recommendation').textContent =
+                    'Moderate crack detected. Immediate manual inspection required within 24 hours. Limit train speed to 30 km/h. Notify section engineer and flag for urgent maintenance scheduling.';
+            } else {
+                badge.className = 'severity-badge severity-severe';
+                document.getElementById('statusIcon').textContent = '🚨';
+                document.getElementById('recommendation').textContent =
+                    'CRITICAL: Severe crack detected. Suspend train operations on this section immediately. Deploy emergency maintenance crew. Alert Railway Control Room and Section In-Charge. Do not resume operations until cleared by certified railway engineer.';
+            }
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function scanAgain() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
+            fileInput.value = '';
+            previewImg.style.display = 'none';
+            dropZone.querySelector('.drop-icon').style.display = 'block';
+            dropZone.querySelector('.drop-title').textContent = 'Drop image here or click to browse';
+            dropZone.querySelector('.drop-sub').textContent = 'Supports JPG, PNG — Max 16MB';
+        }
+    </script>
+</body>
+</html>
