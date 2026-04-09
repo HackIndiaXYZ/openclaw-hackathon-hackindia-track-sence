@@ -70,7 +70,7 @@ python app.py
 
 ### 5. Open in browser
 ```
-fetch("https://openclaw-hackathon-hackindia-track-sence-geo2.onrender.com/detect",{ 
+https://openclaw-hackathon-hackindia-track-sence-geo2.onrender.com/detect
 ```
 
 ---
