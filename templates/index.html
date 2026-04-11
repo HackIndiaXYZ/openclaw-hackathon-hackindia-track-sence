@@ -637,7 +637,7 @@
             formData.append('track_id', document.getElementById('trackId').value || 'N/A');
 
             try {
-                const res = await fetch('/detect', { { method: 'POST', body: formData });
+               const res = await fetch('/detect', { method: 'POST', body: formData });
                 const data = await res.json();
 
                 if (data.error) { alert('Error: ' + data.error); scanAgain(); return; }
