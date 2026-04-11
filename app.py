@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
 import base64
+import threading
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -144,4 +145,4 @@ def detect():
 
 if __name__ == '__main__':
     os.makedirs('uploads', exist_ok=True)
-    app.run(host='0.0.0.0', port=10000)
+   app.run(host='0.0.0.0', port=10000, threaded=True)
